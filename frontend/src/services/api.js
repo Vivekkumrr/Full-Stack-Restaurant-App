@@ -1,11 +1,9 @@
 // src/services/api.js
-// Uses Free Food Menus API — completely free, no API key, no backend needed.
-// https://github.com/sachabigou/free-food-menus-api
 
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const MENU_API = 'https://free-food-menus-api-two.vercel.app';
+
 const BACKEND_API = import.meta.env.VITE_API_URL || '/api';
 
 const setSession = (user) => {
@@ -52,45 +50,6 @@ axiosInstance.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SHAPE MAPPER
-// ─────────────────────────────────────────────────────────────────────────────
-const mapMenuItem = (item, customCategory = null) => ({
-  id: item.id,
-  name: item.name,
-  price: parseFloat(item.price), // API already provides price!
-  category: customCategory || inferCategory(item),
-  type: item.country || 'International',
-  description: item.dsc || 'A delicious dish prepared fresh daily.',
-  image: item.img || null,
-});
-
-// Infer category from item name/type if needed
-const inferCategory = (item) => {
-  const name = item.name?.toLowerCase() || '';
-  if (name.includes('burger') || name.includes('steak') || name.includes('pork')) return 'Main Dishes';
-  if (name.includes('pizza') || name.includes('sandwich')) return 'Main Dishes';
-  if (name.includes('chicken') || name.includes('fried')) return 'Main Dishes';
-  if (name.includes('ice cream') || name.includes('chocolate') || name.includes('dessert')) return 'Side Snacks';
-  if (name.includes('drink')) return 'Drinks';
-  return 'Main Dishes';
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FETCH HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-const fetchCategory = async (endpoint, menuCategory, limit = 6) => {
-  try {
-    const res = await fetch(`${MENU_API}/${endpoint}`);
-    const data = await res.json();
-    const items = Array.isArray(data) ? data.slice(0, limit) : [];
-    return items.map(item => mapMenuItem(item, menuCategory));
-  } catch (error) {
-    console.error(`Error fetching ${endpoint}:`, error);
-    return [];
-  }
-};
 
 // Generic post helper for the backend using axiosInstance
 const post = async (endpoint, body) => {
@@ -149,56 +108,6 @@ const get = async (endpoint) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// menuAPI — drop-in replacement for TheMealDB
-// Returns the same { success, data } shape App.jsx already handles.
-// ─────────────────────────────────────────────────────────────────────────────
-export const menuAPI = {
-  async getAll() {
-    try {
-      // Fetch from multiple endpoints in parallel
-      const [burgers, pizzas, steaks, friedChicken, desserts, drinks, iceCream] = await Promise.all([
-        fetchCategory('burgers', 'Main Dishes', 4),
-        fetchCategory('pizzas', 'Main Dishes', 4),
-        fetchCategory('steaks', 'Main Dishes', 4),
-        fetchCategory('fried-chicken', 'Main Dishes', 4),
-        fetchCategory('desserts', 'Side Snacks', 4),
-        fetchCategory('drinks', 'Drinks', 6),
-        fetchCategory('ice-cream', 'Side Snacks', 3),
-      ]);
-
-      // Combine all items
-      const allItems = [
-        ...burgers,
-        ...pizzas,
-        ...steaks,
-        ...friedChicken,
-        ...desserts,
-        ...iceCream,
-        ...drinks,
-      ];
-
-      // Remove any duplicates by id
-      const uniqueItems = [];
-      const seenIds = new Set();
-      for (const item of allItems) {
-        if (!seenIds.has(item.id)) {
-          seenIds.add(item.id);
-          uniqueItems.push(item);
-        }
-      }
-
-      return {
-        success: true,
-        data: uniqueItems,
-      };
-
-    } catch (error) {
-      console.error('menuAPI.getAll error:', error);
-      return { success: false, error: error.message, data: [] };
-    }
-  },
-};
 export const tableAPI = {
   async getAll() {
     const { data } = await get('/tables/');
@@ -218,6 +127,15 @@ export const tableAPI = {
       return response.data;
     } catch (error) {
       if (error.response) return error.response.data;
+      throw error;
+    }
+  },
+  async delete(id) {
+    try {
+      const response = await axiosInstance.delete(`/tables/${id}/`);
+      return { success: true, status: response.status };
+    } catch (error) {
+      if (error.response) return { success: false, data: error.response.data, status: error.response.status };
       throw error;
     }
   },
@@ -304,11 +222,6 @@ export const authAPI = {
     return data;
   },
 
-  async staffLogin(credentials) {
-    const { data } = await post('/login', credentials);
-    return data;
-  },
-
   async register(userData) {
     const { data } = await post('/register', userData);
     if (data.success && data.user) {
@@ -323,9 +236,20 @@ export const authAPI = {
   },
 
   async logout() {
-    setSession(null);
-    return { success: true };
+    try {
+      const { data, status } = await post('/logout', {});
+      setSession(null);
+      return { data, status };
+    } catch (error) {
+      console.error('logout error:', error);
+      setSession(null);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async adminLogout() {
+    return this.logout();
   },
 };
 
-export default { menuAPI, authAPI, reservationAPI,tableAPI, post };
+export default { authAPI, reservationAPI, tableAPI, post };
