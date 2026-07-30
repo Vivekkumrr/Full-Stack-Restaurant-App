@@ -1,6 +1,7 @@
 import { useState } from "react";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { authAPI } from './services/api';
 import Navbar from "./Navbar";
 import HomePage from "./HomePage";
 import LoginPage from "./LoginPage";
@@ -12,12 +13,16 @@ import Footer from "./Footer";
 import RegisterPage from "./RegisterPage";
 import StaffLogin from "./StaffLogin";
 import AdminDashboard from "./AdminDashboard";
+import AddMenuItemPage from "./AddMenuItemPage";
 
 const App = () => {
   const [menuItems] = useState([]);
   const [user, setUser] = useState(null);
 
-  const handleLogout = () => setUser(null);
+  const handleLogout = async () => {
+    await authAPI.logout();
+    setUser(null);
+  };
   const handleLoginSuccess = (userData) => setUser(userData);
 
   const Layout = ({ children }) => (
@@ -46,7 +51,7 @@ const App = () => {
           element={
             <Layout>
               <div style={{ height: '72px' }} />
-              <Menu menuItems={menuItems} loading={false} error={null} user={user} />
+              <Menu user={user} />
             </Layout>
           }
         />
@@ -82,6 +87,7 @@ const App = () => {
         />
         <Route path="/staff-login" element={<StaffLogin onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/admin" element={<AdminDashboard onLogout={handleLogout} />} />
+        <Route path="/admin/add-item" element={<AddMenuItemPage />} />
         <Route path="*" element={<Layout><HomePage /></Layout>} />
       </Routes>
     </BrowserRouter>
