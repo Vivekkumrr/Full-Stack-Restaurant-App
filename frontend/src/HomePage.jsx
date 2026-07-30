@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import s from './styles/homepage.module.css';
 
 const specialties = [
-  { icon: '🥩', title: 'Prime Cuts',      desc: 'Hand-selected aged steaks, cooked to your perfection over hardwood flame.' },
-  { icon: '🍷', title: 'Curated Cellar',  desc: 'An intimate wine list sourced from boutique estates around the world.' },
-  { icon: '🌿', title: 'Garden Fresh',    desc: 'Seasonal produce from local farms, crafted into vibrant starters and sides.' },
-  { icon: '🎂', title: 'Artisan Desserts',desc: 'House-made confections that end every meal on an unforgettable note.' },
+  { name: 'Dry-Aged Ribeye', detail: 'USDA Prime · 28-Day Aged · 16oz', price: '68', category: 'From the Grill' },
+  { name: 'Butter-Poached Lobster', detail: 'Maine Lobster Tail · Tarragon Beurre Blanc', price: '85', category: 'Seafood' },
+  { name: 'Seared Sea Bass', detail: 'Line-Caught · Saffron Risotto · Fennel', price: '52', category: 'Signature' },
+  { name: 'Duck Confit', detail: 'Leg & Thigh · Cherry Gastrique · Pommes', price: '48', category: 'Classics' },
+  { name: 'Wild Mushroom Risotto', detail: 'Porcini · Truffle Oil · Aged Parmesan', price: '38', category: 'Vegetarian' },
+  { name: 'Chocolate Soufflé', detail: 'Valrhona · Grand Marnier · Vanilla', price: '18', category: 'Desserts' },
 ];
 
 const testimonials = [
@@ -54,6 +56,7 @@ const HomePage = () => {
         <div className={s.scroll}>
           <span>Scroll</span>
           <div className={s.scrollLine} />
+          <span className={s.scrollArrow}>↓</span>
         </div>
       </section>
 
@@ -72,19 +75,22 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ── Specialties ── */}
+      {/* ── Featured Dishes ── */}
       <section className={s.specialties}>
         <div className={s.specialtiesInner}>
           <div className={s.specialtiesHeader}>
-            <p className={s.sectionLabel}>What We Do Best</p>
-            <h2 className={s.specialtiesTitle}>Our Specialties</h2>
+            <p className={s.sectionLabel}>Menu Highlights</p>
+            <h2 className={s.specialtiesTitle}>Chef's Selection</h2>
           </div>
-          <div className={s.specialtiesGrid}>
-            {specialties.map((item) => (
-              <div key={item.title} className={s.specialtyCard}>
-                <span className={s.specialtyIcon}>{item.icon}</span>
-                <div className={s.specialtyName}>{item.title}</div>
-                <p className={s.specialtyDesc}>{item.desc}</p>
+          <div className={s.dishesList}>
+            {specialties.map((dish) => (
+              <div key={dish.name} className={s.dishItem}>
+                <div className={s.dishHeader}>
+                  <span className={s.dishCategory}>{dish.category}</span>
+                  <span className={s.dishPrice}>${dish.price}</span>
+                </div>
+                <h3 className={s.dishName}>{dish.name}</h3>
+                <p className={s.dishDetail}>{dish.detail}</p>
               </div>
             ))}
           </div>

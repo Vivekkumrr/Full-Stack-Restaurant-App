@@ -18,7 +18,7 @@
   justify-content: center;
   text-align: center;
   overflow: hidden;
-  background-image: url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1800&q=80');
+  background-image: url('/images/hero-img.jpg');
   background-size: cover;
   background-position: center;
   transition: background-position 0.08s ease-out;
@@ -119,13 +119,47 @@
   animation: scrollPulse 2s infinite;
 }
 
+.scrollArrow {
+  color: #e8c46a;
+  font-size: 1.5rem;
+  animation: bounce 2s infinite;
+  margin-top: 0.5rem;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(8px);
+  }
+  60% {
+    transform: translateY(4px);
+  }
+}
+
 /* ── INTRO STRIP ── */
 .intro {
+  position: relative;
+  overflow: hidden;
   background: #141210;
   padding: 5rem 2rem;
   text-align: center;
   border-top: 1px solid rgba(232, 196, 106, 0.15);
   border-bottom: 1px solid rgba(232, 196, 106, 0.15);
+}
+
+.intro::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 1px solid rgba(232, 196, 106, 0.18);
+  pointer-events: none;
+  animation: floatDrift 12s ease-in-out infinite;
 }
 
 .introInner {
@@ -160,20 +194,20 @@
   font-style: italic;
 }
 
-/* ── SPECIALTIES ── */
+/* ── FEATURED DISHES ── */
 .specialties {
   padding: 6rem 2rem;
   background: #0c0a08;
 }
 
 .specialtiesInner {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
 .specialtiesHeader {
   text-align: center;
-  margin-bottom: 3.5rem;
+  margin-bottom: 3rem;
 }
 
 .specialtiesTitle {
@@ -184,53 +218,69 @@
   margin-top: 0.75rem;
 }
 
-.specialtiesGrid {
+.dishesList {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0;
+  border: 1px solid rgba(232, 196, 106, 0.15);
 }
 
-.specialtyCard {
-  background: #1e1b16;
-  border: 1px solid rgba(232, 196, 106, 0.12);
-  border-radius: 4px;
-  padding: 2.25rem 1.75rem;
-  transition: border-color 0.25s, transform 0.25s;
-  cursor: default;
+.dishItem {
+  padding: 2rem;
+  border-bottom: 1px solid rgba(232, 196, 106, 0.1);
+  border-right: 1px solid rgba(232, 196, 106, 0.1);
+  transition: background 0.25s;
 }
 
-.specialtyCard:hover {
-  border-color: rgba(232, 196, 106, 0.45);
-  transform: translateY(-5px);
+.dishItem:hover {
+  background: rgba(232, 196, 106, 0.03);
 }
 
-.specialtyIcon {
-  font-size: 2.2rem;
-  margin-bottom: 1.1rem;
-  display: block;
+.dishHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
 }
 
-.specialtyName {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #e8c46a;
-  margin-bottom: 0.65rem;
+.dishCategory {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(232, 196, 106, 0.6);
 }
 
-.specialtyDesc {
+.dishPrice {
   font-family: 'Jost', sans-serif;
   font-size: 0.9rem;
+  font-weight: 500;
+  color: #e8c46a;
+}
+
+.dishName {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.dishDetail {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.8rem;
   font-weight: 300;
-  color: rgba(240,232,216,0.55);
-  line-height: 1.65;
+  color: rgba(240,232,216,0.5);
+  line-height: 1.5;
 }
 
 /* ── PARALLAX DIVIDER ── */
 .divider {
   position: relative;
   height: 480px;
-  background-image: url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80');
+  background-image: url('/images/hero-divider.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -243,7 +293,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(12, 10, 8, 0.72);
+  background: linear-gradient(to bottom, rgba(26, 26, 26, 0.7), rgba(26, 26, 26, 0.3));
 }
 
 .dividerContent {
