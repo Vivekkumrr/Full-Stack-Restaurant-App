@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import login, logout
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.utils.decorators import method_decorator
 
 from .models import Menu, Reservation, Table
@@ -58,7 +58,13 @@ class StaffOnlyReadAuthenticatedCreate(BasePermission):
     def has_permission(self, request, view):
         user = request.user
         if request.method in {"GET", "HEAD", "OPTIONS"}:
-            return getattr(user, "is_authenticated", False)
+            if not getattr(user, "is_authenticated", False):
+                return False
+            return (
+                getattr(user, "role", None) in {"staff", "admin"}
+                or getattr(user, "is_staff", False)
+                or getattr(user, "is_superuser", False)
+            )
         if request.method == "POST":
             return getattr(user, "is_authenticated", False)
         if not getattr(user, "is_authenticated", False):
@@ -92,7 +98,20 @@ class ReservationViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        reservation = serializer.save(user=self.request.user)
+        table = reservation.table
+        if table and table.status == Table.Status.AVAILABLE:
+            table.status = Table.Status.RESERVED
+            table.is_available = False
+            table.save(update_fields=["status", "is_available"])
+
+    def perform_update(self, serializer):
+        reservation = serializer.save()
+        table = reservation.table
+        if reservation.status == Reservation.Status.CANCELLED and table and table.status == Table.Status.RESERVED:
+            table.status = Table.Status.AVAILABLE
+            table.is_available = True
+            table.save(update_fields=["status", "is_available"])
 
 
 class ReservationListCreateView(generics.ListCreateAPIView):
@@ -145,6 +164,7 @@ class MyReservationCancelView(APIView):
         return Response({"success": True, "data": ReservationSerializer(reservation).data})
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class RegisterView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -170,6 +190,7 @@ class RegisterView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -203,12 +224,22 @@ class LoginView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def _logout(self, request):
+        if getattr(request.user, "is_authenticated", False):
+            logout(request)
+        request.session.flush()
+        return Response({"success": True, "message": "Logged out"})
+
+    def get(self, request):
+        return self._logout(request)
 
     def post(self, request):
-        logout(request)
-        return Response({"success": True, "message": "Logged out"})
+        return self._logout(request)
 
 
 class CSRFView(APIView):
@@ -236,3 +267,27 @@ class TableViewSet(viewsets.ModelViewSet):
     queryset = Table.objects.all()
     serializer_class = TableSerializer
     permission_classes = [StaffOnlyDeletePermission]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        is_available = self.request.query_params.get("is_available")
+        date = self.request.query_params.get("date")
+        time = self.request.query_params.get("time")
+        guests = self.request.query_params.get("guests")
+
+        if guests:
+            try:
+                qs = qs.filter(capacity__gte=int(guests))
+            except (TypeError, ValueError):
+                return qs.none()
+
+        if date and time:
+            booked_table_ids = Reservation.objects.filter(
+                date=date, time=time, status__in=["pending", "confirmed"]
+            ).exclude(table__isnull=True).values_list("table_id", flat=True)
+            qs = qs.exclude(id__in=booked_table_ids).exclude(status=Table.Status.OCCUPIED)
+
+        if is_available is not None:
+            qs = qs.filter(is_available=is_available.lower() == "true")
+
+        return qs
