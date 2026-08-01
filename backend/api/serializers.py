@@ -119,8 +119,20 @@ class ReservationSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "created_at"]
 
     def validate(self, attrs):
+        table = attrs.get("table")
         date = attrs.get("date")
         time = attrs.get("time")
+        guests = attrs.get("guests")
+
+        if table is not None:
+            table_obj = table if isinstance(table, Table) else Table.objects.filter(pk=table).first()
+            if table_obj is None:
+                raise serializers.ValidationError({"table": "Table does not exist."})
+            if table_obj.status in [Table.Status.RESERVED, Table.Status.OCCUPIED]:
+                raise serializers.ValidationError({"table": "This table is not available."})
+            if guests is not None and guests > table_obj.capacity:
+                raise serializers.ValidationError({"guests": "Guest count exceeds table capacity."})
+
         if date and time:
             queryset = Reservation.objects.filter(date=date, time=time, status__in=["pending", "confirmed"])
             if self.instance:
@@ -128,6 +140,17 @@ class ReservationSerializer(serializers.ModelSerializer):
             if queryset.exists():
                 raise serializers.ValidationError("This time slot is already booked.")
         return attrs
+
+    def create(self, validated_data):
+        table = validated_data.get("table")
+        reservation = super().create(validated_data)
+        if table is not None:
+            table_obj = table if isinstance(table, Table) else Table.objects.get(pk=table)
+            if table_obj.status != Table.Status.OCCUPIED:
+                table_obj.status = Table.Status.RESERVED
+                table_obj.is_available = False
+                table_obj.save(update_fields=["status", "is_available"])
+        return reservation
 
 class TableSerializer(serializers.ModelSerializer):
     table_id = serializers.IntegerField(source="id", read_only=True)
